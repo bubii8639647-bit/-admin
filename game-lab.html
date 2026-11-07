@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BitLab – ห้องทดลองเกม 32/64/72 บิต</title>
+<style>
+:root{--bg:#0b0d17;--card:#141831;--card2:#1b2142;--tx:#eef0ff;--mu:#9aa3d0;--bd:#2a3263;--a:#7c5cff;--b:#22d3ee;--ok:#34d399;--warn:#fbbf24;--bad:#fb7185;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f1f3ff;--card:#fff;--card2:#eef0ff;--tx:#14172e;--mu:#5a6390;--bd:#d3d8f5;color-scheme:light}}
+:root[data-theme="dark"]{--bg:#0b0d17}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 500px at 10% -10%,rgba(124,92,255,.25),transparent),radial-gradient(800px 500px at 100% 0,rgba(34,211,238,.15),transparent),var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Noto Sans Thai",Sarabun,sans-serif;min-height:100vh}
+.w{max-width:1100px;margin:0 auto;padding:16px}
+h1{margin:0;font-size:26px;background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mu);margin:2px 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tier{background:var(--card2);border:2px solid var(--bd);border-radius:14px;padding:12px;cursor:pointer;transition:.2s}
+.tier:hover{transform:translateY(-2px)}
+.tier.on{border-color:var(--a);box-shadow:0 0 0 3px rgba(124,92,255,.25)}
+.tier h3{margin:0 0 4px;font-size:20px}
+.tier small{color:var(--mu);display:block}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--bd);margin:2px 3px 0 0}
+.bar{height:8px;border-radius:9px;background:var(--bd);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--a),var(--b));transition:width .4s}
+textarea,input[type=email]{width:100%;background:var(--card2);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:10px;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace}
+input[type=email]{font:15px system-ui;flex:1;min-width:180px}
+textarea{min-height:240px;resize:vertical;tab-size:2}
+button{background:linear-gradient(90deg,var(--a),#5b8cff);color:#fff;border:0;border-radius:12px;padding:10px 16px;font:600 15px system-ui;cursor:pointer}
+button.g{background:var(--card2);color:var(--tx);border:1px solid var(--bd)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.stage{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/10;border:1px solid var(--bd);touch-action:manipulation}
+.stage.fs{position:fixed;inset:0;z-index:50;border-radius:0;aspect-ratio:auto}
+.stage iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+.ov{position:absolute;inset:0;display:none;flex-direction:column;gap:8px;align-items:center;justify-content:center;background:rgba(8,10,25,.94);text-align:center;padding:16px;z-index:3}
+.ov.on{display:flex}
+.big{font-size:56px;font-weight:800;font-variant-numeric:tabular-nums}
+.stat{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--mu);margin-top:8px}
+.files div{display:flex;justify-content:space-between;gap:8px;background:var(--card2);border-radius:10px;padding:6px 10px;margin-top:6px;font-size:13px}
+.files button{padding:2px 10px;font-size:13px}
+.msg{font-size:13px;color:var(--mu)}
+.cpu{display:grid;grid-template-columns:repeat(auto-fill,minmax(14px,1fr));gap:3px;margin-top:8px}
+.cpu b{height:14px;border-radius:3px;background:var(--bd);transition:background .3s}
+.cpu b.on{background:var(--ok)}
+.hist{max-height:120px;overflow:auto;font-size:13px;color:var(--mu)}
+.fsb{position:absolute;right:10px;bottom:10px;z-index:6;padding:8px 14px;font-size:14px;background:rgba(20,24,49,.85);border:1px solid var(--bd);backdrop-filter:blur(6px)}
+.hud{position:absolute;left:10px;top:10px;z-index:6;font:12px ui-monospace,monospace;background:rgba(0,0,0,.6);color:#34d399;padding:3px 8px;border-radius:8px;pointer-events:none}
+.stage.turbo{will-change:transform;transform:translateZ(0);contain:layout paint;box-shadow:0 0 24px rgba(34,211,238,.35)}
+</style>
+</head>
+<body>
+<div class="w">
+<h1>🎮 BitLab</h1>
+<p class="sub">ห้องทดลองเกม – เลือกระดับ 32 / 64 / 72 บิต วางโค้ดหรือใส่ไฟล์ แล้วกดรันได้ทันที</p>
+
+<div class="card">
+<b>👤 บัญชีผู้ใช้ (จดจำทุกอย่างที่เคยใช้)</b>
+<div class="row" style="margin-top:8px">
+<input type="email" id="em" placeholder="อีเมลของคุณ">
+<button id="login">สมัคร / เข้าสู่ระบบ</button>
+<button class="g" id="logout" style="display:none">ออกจากระบบ</button>
+</div>
+<div class="msg" id="acc">ยังไม่ได้เข้าสู่ระบบ – ข้อมูลจะไม่ถูกบันทึก</div>
+</div>
+
+<div class="grid" id="tiers"></div>
+
+<div class="card" style="margin-top:14px">
+<div class="row" style="justify-content:space-between"><b>🧠 CPU <span id="cpuName"></span></b><span class="msg" id="cpuInfo"></span></div>
+<div class="cpu" id="cpu"></div>
+</div>
+
+<div class="card">
+<div class="row" style="justify-content:space-between"><b>📝 ที่วางโค้ด</b>
+<span class="row"><button class="g" id="sample">โหลดเกมตัวอย่าง</button><button class="g" id="clear">ล้าง</button></span></div>
+<textarea id="code" spellcheck="false" placeholder="วางโค้ด HTML หรือ JavaScript ที่นี่"></textarea>
+<div class="row" style="margin-top:10px">
+<label class="g" style="cursor:pointer;display:inline-block;background:var(--card2);border:1px solid var(--bd);border-radius:12px;padding:10px 16px;font-weight:600">📎 เพิ่มไฟล์ (ซ้อนได้หลายไฟล์)
+<input type="file" id="file" multiple hidden></label>
+<button id="run">▶ ทดลองรันเกม</button>
+<button class="g" id="reset">รีเซ็ตโควตา</button>
+</div>
+<div class="msg" id="stack"></div>
+<div class="files" id="files"></div>
+<div class="msg">รองรับ .js .css .html .json .txt และรูป/เสียง – ทุกไฟล์ถูกรวมเข้าเกม ไฟล์สื่อเรียกใช้ได้ผ่าน <code>FILES["ชื่อไฟล์"]</code></div>
+</div>
+
+<div class="card">
+<div class="row" style="justify-content:space-between"><b>🖥️ หน้าจอเกม</b><span class="msg">แตะ 2 ที = จอใหญ่ (เฉพาะ 72 บิต)</span></div>
+<div class="stage" id="stage">
+<iframe id="fr" sandbox="allow-scripts allow-pointer-lock" allow="fullscreen" title="game"></iframe>
+<div class="hud" id="hud">พร้อม</div>
+<button class="fsb" id="fsb">⛶ เต็มจอ</button>
+<div class="ov" id="ov"><div id="ovt" style="font-size:18px"></div><div class="big" id="ovn"></div><div class="bar" style="width:70%"><i id="ovb" style="width:0"></i></div></div>
+</div>
+<div class="stat" id="st"></div>
+<div class="msg" id="boost" style="margin-top:6px"></div>
+<div class="hist" id="hist"></div>
+</div>
+</div>
+
+<script>
+var T={
+32:{name:"32 บิต · ฟรี",wait:10000,runs:Infinity,files:2,threads:2,fps:30,ad:true,desc:"ฟรี รันไม่จำกัด · โหลดโฆษณา ~10 วิ · ซ้อนไฟล์ได้ 2 ไฟล์"},
+64:{name:"64 บิต · จำกัด",wait:5000,runs:10,files:8,threads:8,fps:60,ad:false,desc:"รันได้ 10 ครั้ง · โหลด 5 วินาที · ซ้อนไฟล์ได้ 8 ไฟล์"},
+72:{name:"72 บิต · สุดยอด",wait:100,runs:1,files:Infinity,threads:72,fps:144,ad:false,desc:"รันได้ 1 ครั้ง · โหลด 0.1 วิ · ลื่นขั้นเทพ · ซ้อนไฟล์ไม่จำกัด · แตะ 2 ที = จอใหญ่"}
+};
+var $=function(i){return document.getElementById(i)};
+var S={email:"",tier:32,code:"",runs:{32:0,64:0,72:0},hist:[],files:[]};
+var timer=null,t0=0;
+
+function key(){return "bitlab:"+S.email}
+function save(){
+ if(!S.email)return;
+ try{localStorage.setItem(key(),JSON.stringify(S))}catch(e){$("acc").textContent="บันทึกไม่ได้ (พื้นที่เต็ม?)"}
+}
+function load(email){
+ var d=null;
+ try{d=JSON.parse(localStorage.getItem("bitlab:"+email))}catch(e){}
+ S.email=email;
+ if(d){S=Object.assign(S,d);S.email=email;$("acc").textContent="ยินดีต้อนรับกลับ "+email+" – กู้คืนโค้ด ไฟล์ และประวัติทั้งหมดแล้ว ✅"}
+ else{$("acc").textContent="สมัครสำเร็จ "+email+" – ระบบจะจดจำการใช้งานทั้งหมดบนเครื่องนี้"}
+ try{localStorage.setItem("bitlab:last",email)}catch(e){}
+ $("em").value=email;$("login").style.display="none";$("logout").style.display="";
+ $("code").value=S.code||"";
+ draw();save();
+}
+function tiersUI(){
+ var h="";
+ [32,64,72].forEach(function(k){
+  var t=T[k],left=t.runs===Infinity?"∞":Math.max(0,t.runs-S.runs[k]);
+  h+='<div class="tier'+(S.tier===k?' on':'')+'" data-k="'+k+'"><h3>'+t.name+'</h3><small>'+t.desc+'</small>'+
+  '<span class="tag">เหลือ '+left+' ครั้ง</span><span class="tag">'+t.fps+' FPS</span><span class="tag">'+t.threads+' เธรด</span>'+
+  '<div class="bar"><i style="width:'+(k==32?20:k==64?55:100)+'%"></i></div></div>';
+ });
+ $("tiers").innerHTML=h;
+ Array.prototype.forEach.call(document.querySelectorAll(".tier"),function(e){e.onclick=function(){S.tier=+e.dataset.k;draw();save()}});
+}
+function cpuUI(){
+ var t=T[S.tier];$("cpuName").textContent=S.tier+" บิต";
+ $("cpuInfo").textContent=t.threads+" เธรด · เป้าหมาย "+t.fps+" FPS";
+ var h="";for(var i=0;i<t.threads;i++)h+="<b></b>";$("cpu").innerHTML=h;
+}
+function filesUI(){
+ var t=T[S.tier],h="";
+ S.files.forEach(function(f,i){h+='<div><span>'+esc(f.name)+' <span class="msg">'+Math.round(f.size/1024*10)/10+' KB</span></span><button class="g" data-i="'+i+'">ลบ</button></div>'});
+ $("files").innerHTML=h;
+ $("stack").textContent="ซ้อนไฟล์: "+S.files.length+" / "+(t.files===Infinity?"ไม่จำกัด":t.files);
+ Array.prototype.forEach.call($("files").querySelectorAll("button"),function(b){b.onclick=function(){S.files.splice(+b.dataset.i,1);filesUI();save()}});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function histUI(){$("hist").innerHTML=S.hist.slice(-20).reverse().map(function(h){return"• "+esc(h)}).join("<br>")}
+function draw(){
+ tiersUI();cpuUI();filesUI();histUI();
+ var t=T[S.tier],left=t.runs-S.runs[S.tier];
+ $("run").disabled=left<=0&&t.runs!==Infinity;
+ $("run").textContent=$("run").disabled?"โควตาหมดแล้ว":"▶ ทดลองรันเกม";
+}
+function build(){
+ var code=$("code").value.trim(),css="",js="",html="",assets={};
+ S.files.forEach(function(f){
+  var n=f.name.toLowerCase();
+  if(/\.css$/.test(n))css+=f.data+"\n";
+  else if(/\.js$/.test(n))js+=f.data+"\n;\n";
+  else if(/\.html?$/.test(n))html+=f.data+"\n";
+  else assets[f.name]=f.data;
+ });
+ var main=/^</.test(code)?code:"";
+ var mainJs=main?"":code;
+ var inj="<style>"+css+"</style>"+html;
+ var run="<script>window.FILES="+JSON.stringify(assets).replace(/</g,"\\u003c")+";<\/script>";
+ var sc="<script>try{"+(mainJs+"\n;\n"+js).replace(/<\/script/gi,"<\\/script")+"}catch(e){document.body.insertAdjacentHTML('beforeend','<pre style=color:#f55>'+e+'</pre>')}<\/script>";
+ var base='<meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;height:100%;background:#0b0d17;color:#fff;font-family:sans-serif}canvas{max-width:100%}</style>';
+ if(main){
+  return base+run+inj+main.replace(/<\/script/gi,"</script")+sc;
+ }
+ return base+inj+run+sc;
+}
+var BOOST={
+32:"ตัวจำกัด: เกมถูกล็อก 30 FPS",
+64:"ระบบที่ใช้: ล็อก 60 FPS เสถียร",
+72:"🚀 TURBO ที่ทำงานอยู่: ปลดล็อก FPS ตามจอ (ไม่ล็อก) · แคนวาสโหมด desynchronized + high-performance GPU · ตัวตั้งเวลา 0ms ไม่ถูกเบราว์เซอร์หน่วง · เลเยอร์ GPU เฉพาะ · กันหน้าจอดับ · วัด FPS สดๆ"
+};
+function perf(tier){
+ var cap=T[tier].fps>=144?0:T[tier].fps;
+ var s='(function(){var cap='+cap+',tier='+tier+',raf=window.requestAnimationFrame.bind(window),last=0,n=0,iv=cap?1000/cap:0;'+
+ 'window.requestAnimationFrame=function(cb){return raf(function w(t){if(cap&&t-last<iv-2){raf(w);return}last=t;n++;cb(t)})};'+
+ 'if(tier==72){var gc=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(k,o){o=Object.assign({desynchronized:true,powerPreference:"high-performance"},o||{});return gc.call(this,k,o)};'+
+ 'var mc=new MessageChannel(),q=[],st=window.setTimeout;mc.port1.onmessage=function(){var f=q.shift();f&&f()};'+
+ 'window.setTimeout=function(f,d){if(typeof f=="function"&&(!d||d<5)&&arguments.length<3){q.push(f);mc.port2.postMessage(0);return 0}return st.apply(window,arguments)}}'+
+ 'var l=performance.now();(function c(){var t=performance.now();if(t-l>=1000){parent.postMessage({bitlabFps:Math.round(n*1000/(t-l))},"*");n=0;l=t}raf(c)})();})();';
+ return '<script>'+s+'<\/script>';
+}
+var wl=null;
+function turbo(tier){
+ var st=$("stage");
+ st.classList.toggle("turbo",tier==72);
+ $("boost").textContent=BOOST[tier];
+ $("hud").textContent=tier+" บิต · กำลังวัด FPS…";
+ if(tier==72&&navigator.wakeLock){try{navigator.wakeLock.request("screen").then(function(w){wl=w}).catch(function(){})}catch(e){}}
+ else if(wl){try{wl.release()}catch(e){}wl=null}
+}
+window.addEventListener("message",function(e){
+ if(e.source===$("fr").contentWindow&&e.data&&e.data.bitlabFps!=null){
+  var f=e.data.bitlabFps,cores=navigator.hardwareConcurrency||"?";
+  $("hud").textContent=S.tier+" บิต"+(S.tier==72?" TURBO":"")+" · "+f+" FPS · "+cores+" แกนจริง";
+  $("hud").style.color=f>=55?"#34d399":f>=28?"#fbbf24":"#fb7185";
+ }
+});
+function overlay(on,txt,n,p){
+ $("ov").classList.toggle("on",on);
+ if(txt!=null)$("ovt").textContent=txt;
+ if(n!=null)$("ovn").textContent=n;
+ if(p!=null)$("ovb").style.width=p+"%";
+}
+function cpuAnim(ms){
+ var bs=$("cpu").children,n=bs.length,i=0;
+ Array.prototype.forEach.call(bs,function(b){b.classList.remove("on")});
+ var step=Math.max(10,ms/n);
+ var iv=setInterval(function(){if(i<n)bs[i++].classList.add("on");else clearInterval(iv)},step);
+}
+function run(){
+ var t=T[S.tier];
+ if(t.runs!==Infinity&&S.runs[S.tier]>=t.runs)return;
+ var code=$("code").value;
+ if(!code.trim()&&!S.files.length){$("st").textContent="ใส่โค้ดหรือไฟล์ก่อนนะ";return}
+ S.code=code;
+ if(timer)clearInterval(timer);
+ var tier=S.tier,ms=t.wait;t0=performance.now();
+ $("run").disabled=true;
+ cpuAnim(ms);
+ var msg=t.ad?"📺 กำลังโหลดโฆษณา (32 บิต)…":tier==64?"⏳ กำลังโหลดหน้าจอเกม…":"⚡ เปิดหน้าจอ…";
+ overlay(true,msg,(ms/1000).toFixed(1)+" s",0);
+ timer=setInterval(function(){
+  var e=performance.now()-t0,left=Math.max(0,ms-e);
+  overlay(true,null,(left/1000).toFixed(tier==72?2:1)+" s",Math.min(100,e/ms*100));
+  if(e>=ms){
+   clearInterval(timer);timer=null;
+   $("fr").srcdoc=perf(tier)+build();turbo(tier);
+   overlay(false);
+   S.runs[tier]++;
+   var el=((performance.now()-t0)/1000).toFixed(2);
+   S.hist.push(new Date().toLocaleString("th-TH")+" · "+tier+" บิต · โหลด "+el+" วิ · ไฟล์ "+S.files.length);
+   $("st").textContent="รันแล้ว · "+tier+" บิต · เวลาโหลด "+el+" วินาที · เป้า "+t.fps+" FPS";
+   draw();save();
+  }
+ },tier==72?10:100);
+}
+function fs(on){
+ var st=$("stage");
+ st.classList.toggle("fs",on);
+ $("fsb").textContent=on?"✕ ออกจากเต็มจอ":"⛶ เต็มจอ";
+ if(on&&screen.orientation&&screen.orientation.lock){try{screen.orientation.lock("landscape").catch(function(){})}catch(e){}}
+ if(on&&st.requestFullscreen){try{st.requestFullscreen().catch(function(){})}catch(e){}}
+ if(!on&&document.fullscreenElement){try{document.exitFullscreen()}catch(e){}}
+}
+var lastTap=0;
+$("stage").addEventListener("pointerup",function(){
+ var n=Date.now();
+ if(n-lastTap<350){
+  if(S.tier!==72){$("st").textContent="🔒 แตะ 2 ที เพื่อจอใหญ่ ใช้ได้เฉพาะ 72 บิต";}
+  else fs(!$("stage").classList.contains("fs"));
+  lastTap=0;
+ }else lastTap=n;
+});
+document.addEventListener("fullscreenchange",function(){if(!document.fullscreenElement){$("stage").classList.remove("fs");$("fsb").textContent="⛶ เต็มจอ"}});
+$("fsb").onclick=function(e){e.stopPropagation();fs(!$("stage").classList.contains("fs"))};
+$("fsb").addEventListener("pointerup",function(e){e.stopPropagation()});
+document.addEventListener("keydown",function(e){if(e.key=="Escape")fs(false)});
+
+$("file").onchange=function(e){
+ var t=T[S.tier],list=Array.prototype.slice.call(e.target.files);
+ list.forEach(function(f){
+  if(S.files.length>=t.files){$("stack").textContent="ถึงขีดจำกัดไฟล์ของ "+S.tier+" บิตแล้ว – อัปเกรดเพื่อซ้อนเพิ่ม";return}
+  var r=new FileReader(),txt=/\.(js|css|html?|json|txt)$/i.test(f.name);
+  r.onload=function(){
+   if(S.files.length>=t.files)return;
+   S.files.push({name:f.name,size:f.size,data:r.result});
+   filesUI();save();
+  };
+  txt?r.readAsText(f):r.readAsDataURL(f);
+ });
+ e.target.value="";
+};
+$("run").onclick=run;
+$("login").onclick=function(){
+ var v=$("em").value.trim().toLowerCase();
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){$("acc").textContent="อีเมลไม่ถูกต้อง";return}
+ load(v);
+};
+$("logout").onclick=function(){
+ save();try{localStorage.removeItem("bitlab:last")}catch(e){}
+ S={email:"",tier:32,code:"",runs:{32:0,64:0,72:0},hist:[],files:[]};
+ $("code").value="";$("em").value="";$("login").style.display="";$("logout").style.display="none";
+ $("acc").textContent="ออกจากระบบแล้ว";draw();
+};
+$("reset").onclick=function(){S.runs={32:0,64:0,72:0};draw();save()};
+$("clear").onclick=function(){$("code").value="";S.code="";save()};
+$("code").oninput=function(){S.code=$("code").value;save()};
+$("sample").onclick=function(){
+ $("code").value='<canvas id="c" width="480" height="300"></canvas>\n<script>\nvar c=document.getElementById("c"),x=c.getContext("2d"),p=150,b=[],s=0,k={};\nonkeydown=function(e){k[e.key]=1};onkeyup=function(e){k[e.key]=0};\nc.onpointermove=function(e){var r=c.getBoundingClientRect();p=(e.clientX-r.left)*480/r.width-20};\nsetInterval(function(){b.push({x:Math.random()*460,y:0})},500);\n(function f(){\n x.fillStyle="#111";x.fillRect(0,0,480,300);\n if(k.ArrowLeft)p-=5;if(k.ArrowRight)p+=5;\n x.fillStyle="#7c5cff";x.fillRect(p,280,40,12);\n x.fillStyle="#22d3ee";\n b.forEach(function(o){o.y+=3;x.fillRect(o.x,o.y,14,14);if(o.y>276&&o.x>p-14&&o.x<p+40){o.y=999;s++}});\n x.fillStyle="#fff";x.fillText("Score "+s,10,16);\n requestAnimationFrame(f)})();\n<\/script>';
+ S.code=$("code").value;save();
+};
+
+try{var l=localStorage.getItem("bitlab:last");if(l)load(l);else draw()}catch(e){draw()}
+</script>
+</body>
+</html>
